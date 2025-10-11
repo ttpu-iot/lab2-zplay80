@@ -1,0 +1,72 @@
+// RED - D26
+// Green - D27
+// Blue - D14
+// Yellow - D12
+
+// Button - D25
+// light sensor - D33
+
+// LCD I2C - SDA: D21
+// LCD I2C - SCL: D22
+
+
+#include "Arduino.h"
+#include "WiFi.h"
+
+/*
+ Connect to "Wokwi-GUEST" wifi
+ Print result (can not connect, or success)
+ Always check connection, if lost, try to connect again in 5 seconds
+ If succesfull connection, print the IP address
+*/
+
+const char* wifi_ssid = "Wokwi-GUEST";
+const char* wifi_pass = "";
+
+/****************************************************/
+void setup(void) {
+
+    // Configure Serial port - UART port
+    Serial.begin(115200);
+
+    // Configure WiFi to AP mode
+    WiFi.mode(WIFI_STA);
+
+    WiFi.begin(wifi_ssid, wifi_pass, 6);
+
+    while (WiFi.status() != WL_CONNECTED){
+        Serial.println("Failed to connect, will try again in 5 second....");
+        delay(5000);
+    }
+
+    Serial.println("WiFI Connection SUCCESSFULL");
+
+    // print the IP address of the device
+    Serial.print("IP address: ");
+    Serial.println(WiFi.localIP());
+
+}
+
+/****************************************************/
+void loop(void) {
+
+    static bool conect_flag = true;
+
+    while (WiFi.status() != WL_CONNECTED){
+        Serial.println("WiFi FAILED, try again in 5 second...");
+        delay(5000);
+        WiFi.begin(wifi_ssid, wifi_pass);
+
+        conect_flag = false;
+    }
+
+    if (conect_flag == false){
+        conect_flag = true;
+        Serial.println("WiFi RECONNECTED");
+
+        // print the IP address of the device
+        Serial.print("IP address: ");
+        Serial.println(WiFi.localIP());
+    }
+}
+

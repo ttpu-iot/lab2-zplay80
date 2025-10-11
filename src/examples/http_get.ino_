@@ -1,0 +1,134 @@
+// RED - D26
+// Green - D27
+// Blue - D14
+// Yellow - D12
+
+// Button - D25
+// light sensor - D33
+
+// LCD I2C - SDA: D21
+// LCD I2C - SCL: D22
+
+
+#include "Arduino.h"
+#include "WiFi.h"
+#include "HTTPClient.h"
+#include <ArduinoJson.h>
+
+/*
+ Connect to "Wokwi-GUEST" wifi
+ GET request from some website
+ Receive the response
+ Print the response
+ do it every 10 second
+*/
+
+const char* wifi_ssid = "Wokwi-GUEST";
+const char* wifi_pass = "";
+
+String serverName = "http://api.thingspeak.com/channels/3108107/feeds.json?api_key=MTN5HP1R2KIHQ3TW&results=1";
+
+
+String getField1FromLatestFeed(const String& jsonPayload);
+
+/****************************************************/
+void setup(void) {
+
+    pinMode(26, OUTPUT);   // D26 is connected to the RED LED
+    
+    // Configure Serial port - UART port
+    Serial.begin(115200);
+
+    // Configure WiFi to AP mode
+    WiFi.mode(WIFI_STA);
+
+    WiFi.begin(wifi_ssid, wifi_pass, 6);
+
+    while (WiFi.status() != WL_CONNECTED){
+        Serial.println("Failed to connect, will try again in 5 second....");
+        delay(5000);
+    }
+
+    Serial.println("WiFI Connection SUCCESSFULL");
+
+    // print the IP address of the device
+    Serial.print("IP address: ");
+    Serial.println(WiFi.localIP());
+
+}
+
+/****************************************************/
+void loop(void) {
+
+    static bool conect_flag = true;
+
+    while (WiFi.status() != WL_CONNECTED){
+        Serial.println("WiFi FAILED, try again in 5 second...");
+        delay(5000);
+        WiFi.begin(wifi_ssid, wifi_pass);
+
+        conect_flag = false;
+    }
+
+    if (conect_flag == false){
+        conect_flag = true;
+        Serial.println("WiFi RECONNECTED");
+
+        // print the IP address of the device
+        Serial.print("IP address: ");
+        Serial.println(WiFi.localIP());
+    }
+
+    // Start the HTTP request
+
+    HTTPClient http_obj;
+
+    http_obj.begin(serverName.c_str());
+
+    int resp_code = http_obj.GET();
+
+    if (resp_code > 0){
+        Serial.print("HTTP Response code: ");
+        Serial.println(resp_code);
+
+        String response = http_obj.getString();
+        // Serial.println(response);
+
+        String field1 = getField1FromLatestFeed(response);
+        Serial.println("field1 = " + field1);
+
+        if (field1 == "on"){
+            digitalWrite(26, HIGH);
+        }
+        else{
+            digitalWrite(26, LOW);
+        }
+    }
+    else{
+        Serial.print("HTTP ERROR: ");
+        Serial.println(resp_code);
+    }
+
+    http_obj.end();
+
+    // wait 10 sec before next request
+    delay(10000);
+
+}
+
+
+// jsonPayload = the HTTP response body you showed
+String getField1FromLatestFeed(const String& jsonPayload) {
+  DynamicJsonDocument doc(2048);           // ESP32: heap is fine; adjust if needed
+  DeserializationError err = deserializeJson(doc, jsonPayload);
+  if (err) {
+    // Optional: Serial.println(err.f_str());
+    return String();                        // empty if parse failed
+  }
+
+  JsonArray feeds = doc["feeds"].as<JsonArray>();
+  if (!feeds || feeds.size() == 0) return String();
+
+  JsonObject last = feeds[feeds.size() - 1];
+  return last["field1"].as<String>();       // "" if missing/null
+}

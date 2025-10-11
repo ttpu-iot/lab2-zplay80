@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>IoT LED Control - ThingSpeak</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            padding: 40px;
+            max-width: 500px;
+            width: 100%;
+        }
+
+        h1 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 30px;
+            font-size: 28px;
+        }
+
+        .form-group {
+            margin-bottom: 30px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            color: #555;
+            font-weight: 600;
+            font-size: 14px;
+        }
+
+        input[type="text"] {
+            width: 100%;
+            padding: 12px 15px;
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            font-size: 16px;
+            transition: all 0.3s ease;
+        }
+
+        input[type="text"]:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        input[type="text"]:disabled {
+            background-color: #f5f5f5;
+            cursor: not-allowed;
+        }
+
+        .buttons-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        button {
+            padding: 15px 20px;
+            font-size: 16px;
+            font-weight: 600;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            color: white;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        button:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+        }
+
+        button:active:not(:disabled) {
+            transform: translateY(0);
+        }
+
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .btn-red-off {
+            background: linear-gradient(135deg, #ff6b6b 0%, #ee5a6f 100%);
+        }
+
+        .btn-red-on {
+            background: linear-gradient(135deg, #c92a2a 0%, #a61e4d 100%);
+        }
+
+        .btn-green-off {
+            background: linear-gradient(135deg, #51cf66 0%, #37b24d 100%);
+        }
+
+        .btn-green-on {
+            background: linear-gradient(135deg, #2b8a3e 0%, #2f9e44 100%);
+        }
+
+        .btn-blue-off {
+            background: linear-gradient(135deg, #339af0 0%, #228be6 100%);
+        }
+
+        .btn-blue-on {
+            background: linear-gradient(135deg, #1864ab 0%, #1971c2 100%);
+        }
+
+        .btn-yellow-off {
+            background: linear-gradient(135deg, #ffd43b 0%, #fab005 100%);
+        }
+
+        .btn-yellow-on {
+            background: linear-gradient(135deg, #f59f00 0%, #e67700 100%);
+        }
+
+        .status {
+            text-align: center;
+            padding: 15px;
+            border-radius: 10px;
+            margin-top: 20px;
+            font-size: 14px;
+            font-weight: 500;
+        }
+
+        .status.info {
+            background-color: #e3f2fd;
+            color: #1976d2;
+        }
+
+        .status.success {
+            background-color: #e8f5e9;
+            color: #2e7d32;
+        }
+
+        .status.error {
+            background-color: #ffebee;
+            color: #c62828;
+        }
+
+        .status.waiting {
+            background-color: #fff3e0;
+            color: #e65100;
+        }
+
+        .loader {
+            display: inline-block;
+            width: 14px;
+            height: 14px;
+            border: 2px solid #f3f3f3;
+            border-top: 2px solid #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-right: 8px;
+            vertical-align: middle;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🚦 IoT LED Control</h1>
+        
+        <div class="form-group">
+            <label for="field5">Enter your name</label>
+            <input type="text" id="field5" placeholder="Your name" required>
+        </div>
+
+        <div class="buttons-grid">
+            <button id="btn-red" class="btn-red-off" data-led="red" data-field="field1" data-state="LOW">RED OFF</button>
+            <button id="btn-green" class="btn-green-off" data-led="green" data-field="field2" data-state="LOW">GREEN OFF</button>
+            <button id="btn-blue" class="btn-blue-off" data-led="blue" data-field="field3" data-state="LOW">BLUE OFF</button>
+            <button id="btn-yellow" class="btn-yellow-off" data-led="yellow" data-field="field4" data-state="LOW">YELLOW OFF</button>
+        </div>
+
+        <div id="status" class="status info">Ready to send commands</div>
+    </div>
+
+    <script>
+        const API_KEY = 'H1R8L3H5EYZTLZ4O';
+        const API_URL = 'http://api.thingspeak.com/update';
+        const RETRY_DELAY = 16000; // 16 seconds in milliseconds
+
+        let isProcessing = false;
+
+        // Get all buttons and input
+        const buttons = document.querySelectorAll('.buttons-grid button');
+        const nameInput = document.getElementById('field5');
+        const statusDiv = document.getElementById('status');
+
+        // Add click event listeners to all buttons
+        buttons.forEach(button => {
+            button.addEventListener('click', () => handleButtonClick(button));
+        });
+
+        async function handleButtonClick(button) {
+            if (isProcessing) return;
+
+            const name = nameInput.value.trim();
+            if (!name) {
+                showStatus('Please enter your name', 'error');
+                return;
+            }
+
+            const field = button.dataset.field;
+            const currentState = button.dataset.state;
+            const newState = currentState === 'LOW' ? 'HIGH' : 'LOW';
+
+            // Disable all controls
+            disableControls();
+            isProcessing = true;
+
+            // Build the API request URL
+            const url = buildApiUrl(field, newState, name);
+
+            // Try to send the request
+            await sendRequestWithRetry(url, button, newState);
+        }
+
+        function buildApiUrl(field, state, name) {
+            // Get current states of all LEDs
+            const redState = document.getElementById('btn-red').dataset.state;
+            const greenState = document.getElementById('btn-green').dataset.state;
+            const blueState = document.getElementById('btn-blue').dataset.state;
+            const yellowState = document.getElementById('btn-yellow').dataset.state;
+
+            // Update the state of the clicked LED
+            const states = {
+                field1: field === 'field1' ? state : redState,
+                field2: field === 'field2' ? state : greenState,
+                field3: field === 'field3' ? state : blueState,
+                field4: field === 'field4' ? state : yellowState,
+            };
+
+            return `${API_URL}?api_key=${API_KEY}&field1=${states.field1}&field2=${states.field2}&field3=${states.field3}&field4=${states.field4}&field5=${encodeURIComponent(name)}`;
+        }
+
+        async function sendRequestWithRetry(url, button, newState) {
+            let attempt = 0;
+            let success = false;
+
+            while (!success) {
+                attempt++;
+                showStatus(`<span class="loader"></span>Sending request (Attempt ${attempt})...`, 'info');
+
+                try {
+                    const response = await fetch(url);
+                    const result = await response.text();
+                    const entryId = parseInt(result);
+
+                    if (entryId > 0) {
+                        // Success - update button state
+                        success = true;
+                        updateButtonState(button, newState);
+                        showStatus(`✓ Command sent successfully! (Entry ID: ${entryId})`, 'success');
+                        enableControls();
+                        isProcessing = false;
+                    } else {
+                        // Failed - retry after delay
+                        showStatus(`⏳ Request failed (got 0). Waiting 16 seconds to retry...`, 'waiting');
+                        await sleep(RETRY_DELAY);
+                    }
+                } catch (error) {
+                    // Network error - retry after delay
+                    showStatus(`⚠ Network error. Waiting 16 seconds to retry...`, 'error');
+                    await sleep(RETRY_DELAY);
+                }
+            }
+        }
+
+        function updateButtonState(button, newState) {
+            const led = button.dataset.led;
+            button.dataset.state = newState;
+
+            if (newState === 'HIGH') {
+                button.textContent = `${led.toUpperCase()} ON`;
+                button.className = `btn-${led}-on`;
+            } else {
+                button.textContent = `${led.toUpperCase()} OFF`;
+                button.className = `btn-${led}-off`;
+            }
+        }
+
+        function disableControls() {
+            buttons.forEach(btn => btn.disabled = true);
+            nameInput.disabled = true;
+        }
+
+        function enableControls() {
+            buttons.forEach(btn => btn.disabled = false);
+            nameInput.disabled = false;
+        }
+
+        function showStatus(message, type) {
+            statusDiv.innerHTML = message;
+            statusDiv.className = `status ${type}`;
+        }
+
+        function sleep(ms) {
+            return new Promise(resolve => setTimeout(resolve, ms));
+        }
+    </script>
+</body>
+</html>

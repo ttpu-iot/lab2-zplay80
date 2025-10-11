@@ -1,0 +1,40 @@
+// RED - D26
+// Green - D27
+// Blue - D14
+// Yellow - D12
+
+// Button - D25
+// light sensor - D33
+
+// LCD I2C - SDA: D21
+// LCD I2C - SCL: D22
+
+
+#include "Arduino.h"
+#include "WiFi.h"
+
+/*
+ Create WiFi AP (Access Point) in ESP32
+ then print the result
+*/
+
+/****************************************************/
+void setup(void) {
+
+    // Configure Serial port - UART port
+    Serial.begin(115200);
+
+    // Configure WiFi to AP mode
+    WiFi.mode(WIFI_AP);
+
+    // Create AP with SSID and pass
+    bool flag = WiFi.softAP("IoT2025", "iotpassword");
+
+    Serial.println("New AP is created");
+}
+
+/****************************************************/
+void loop(void) {
+
+}
+

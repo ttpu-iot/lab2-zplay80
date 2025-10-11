@@ -1,0 +1,68 @@
+// RED - D26
+// Green - D27
+// Blue - D14
+// Yellow - D12
+
+// Button - D25
+// light sensor - D33
+
+// LCD I2C - SDA: D21
+// LCD I2C - SCL: D22
+
+
+#include "Arduino.h"
+#include "WiFi.h"
+
+/*
+    Scan all wifi networks and print them on Serial port
+    every 5 second
+*/
+
+/****************************************************/
+void setup(void) {
+
+    // Configure Serial port - UART port
+    Serial.begin(115200);
+
+    // Configure WiFi to Station Mode
+    WiFi.mode(WIFI_STA);
+
+    Serial.println("WiFi is set to Station mode");
+}
+
+/****************************************************/
+void loop(void) {
+
+    int n = WiFi.scanNetworks();
+
+    Serial.print("Number of available wifi networks: ");
+    Serial.println(n);
+
+    for (int i=0; i < n; i++){
+
+        Serial.print(i+1);
+        Serial.print(") ");
+
+        Serial.print(WiFi.SSID(i));
+
+        int rssi = WiFi.RSSI(i);
+
+        Serial.print("(");
+        Serial.print(rssi);
+        Serial.print("): ");
+
+        if (WiFi.encryptionType(i) == WIFI_AUTH_OPEN){
+            Serial.println("open - no password");
+        }
+        else{
+            Serial.println("requires password");
+        }
+
+        
+
+    }
+
+    // wait for 5 second
+    delay(5000);
+}
+
